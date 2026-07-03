@@ -1,0 +1,54 @@
+@import "tailwindcss";
+@import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap");
+
+@theme {
+  --color-ink: #0b0d12;
+  --color-surface: #151822;
+  --color-surface-2: #1c202c;
+  --color-border-soft: #2a2f3d;
+  --color-gold: #e3a63c;
+  --color-gold-soft: #3a2e18;
+  --color-emerald: #3dd68c;
+  --color-emerald-soft: #113026;
+  --color-indigo: #7c8cf8;
+  --color-indigo-soft: #1c1f3d;
+  --color-rose: #f0576b;
+  --color-rose-soft: #3a1520;
+  --color-ink-text: #f3f1ea;
+  --color-muted: #9aa0b4;
+
+  --font-display: "Space Grotesk", ui-sans-serif, sans-serif;
+  --font-body: "Inter", ui-sans-serif, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+}
+
+html {
+  font-family: var(--font-body);
+  background-color: var(--color-ink);
+}
+
+body {
+  background-color: var(--color-ink);
+}
+
+::selection {
+  background-color: var(--color-gold);
+  color: var(--color-ink);
+}
+
+.scoreboard-num {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+
+.feather-divider {
+  background-image: repeating-linear-gradient(
+    90deg,
+    var(--color-border-soft) 0px,
+    var(--color-border-soft) 6px,
+    transparent 6px,
+    transparent 12px
+  );
+  height: 1px;
+}
