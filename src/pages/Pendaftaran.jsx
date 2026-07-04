@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { KLOTER_SIZE } from "../lib/babak";
+import { KLOTER_SIZE } from "../lib/babaks";
 
 export default function Pendaftaran({ daftar, setDaftar, htm, setHtm }) {
   const [f, setF] = useState({

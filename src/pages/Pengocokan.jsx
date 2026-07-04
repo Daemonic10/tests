@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { babakUrutan, babakLabel, pesertaUnik } from "../lib/babak";
+import { babakUrutan, babakLabel, pesertaUnik } from "../lib/babaks";
 
 function acakSatuKloter(peserta) {
   let pool = [...peserta].sort(() => Math.random() - 0.5);

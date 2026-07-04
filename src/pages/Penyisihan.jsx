@@ -1,4 +1,4 @@
-import { babakUrutan, babakLabel, pesertaUnik } from "../lib/babak";
+import { babakUrutan, babakLabel, pesertaUnik } from "../lib/babaks";
 
 function StepProgress({ status }) {
   const idx = babakUrutan.indexOf(status);
