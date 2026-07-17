@@ -1,4 +1,4 @@
-import { pesertaUnik } from "../lib/babak";
+import { pesertaUnik } from "../lib/babaks";
 
 export default function Monitor({ daftar }) {
   const unik = pesertaUnik(daftar);
