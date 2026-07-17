@@ -8,20 +8,34 @@ import Monitor from "./pages/Monitor";
 import Penyisihan from "./pages/Penyisihan";
 import Pengocokan from "./pages/Pengocokan";
 
+function readStoredValue(key, fallback) {
+  try {
+    const storedValue = localStorage.getItem(key);
+    return storedValue ? JSON.parse(storedValue) : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+function storeValue(key, value) {
+  try {
+    localStorage.setItem(key, JSON.stringify(value));
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export default function App() {
   const [daftar, setDaftar] = useState(
-    () => JSON.parse(localStorage.getItem("dataLapak")) || [],
+    () => readStoredValue("dataLapak", []),
   );
   const [htm, setHtm] = useState(
-    () =>
-      JSON.parse(localStorage.getItem("htm")) || { utama: 50000, bob: 100000 },
+    () => readStoredValue("htm", { utama: 50000, bob: 100000 }),
   );
 
-  useEffect(
-    () => localStorage.setItem("dataLapak", JSON.stringify(daftar)),
-    [daftar],
-  );
-  useEffect(() => localStorage.setItem("htm", JSON.stringify(htm)), [htm]);
+  useEffect(() => storeValue("dataLapak", daftar), [daftar]);
+  useEffect(() => storeValue("htm", htm), [htm]);
 
   return (
     <Router>
