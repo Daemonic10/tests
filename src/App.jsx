@@ -8,24 +8,33 @@ import Monitor from "./pages/Monitor";
 import Penyisihan from "./pages/Penyisihan";
 import Pengocokan from "./pages/Pengocokan";
 
-export default function App() {
-  const [daftar, setDaftar] = useState(
-    () => JSON.parse(localStorage.getItem("dataLapak")) || [],
-  );
-  const [htm, setHtm] = useState(
-    () =>
-      JSON.parse(localStorage.getItem("htm")) || { utama: 50000, bob: 100000 },
-  );
+function useLocalStorageState(key, fallback) {
+  const [value, setValue] = useState(() => {
+    try {
+      const saved = localStorage.getItem(key);
+      return saved ? JSON.parse(saved) : fallback;
+    } catch {
+      return fallback;
+    }
+  });
 
-  useEffect(
-    () => localStorage.setItem("dataLapak", JSON.stringify(daftar)),
-    [daftar],
-  );
-  useEffect(() => localStorage.setItem("htm", JSON.stringify(htm)), [htm]);
+  useEffect(() => {
+    localStorage.setItem(key, JSON.stringify(value));
+  }, [key, value]);
+
+  return [value, setValue];
+}
+
+export default function App() {
+  const [daftar, setDaftar] = useLocalStorageState("dataLapak", []);
+  const [htm, setHtm] = useLocalStorageState("htm", {
+    utama: 50000,
+    bob: 100000,
+  });
 
   return (
     <Router>
-      <div className="flex min-h-screen bg-ink font-body text-ink-text">
+      <div className="flex flex-col md:flex-row min-h-screen bg-ink font-body text-ink-text">
         <Sidebar />
         <main className="flex-1 min-w-0">
           <Routes>

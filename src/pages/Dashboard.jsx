@@ -1,37 +1,51 @@
-function ScorePanel({ label, accent, pendaftar, lunas, belum, tunai, bank }) {
-  const accentMap = {
-    indigo: {
-      text: "text-indigo",
-      bg: "bg-indigo-soft",
-      border: "border-indigo/30",
-      bar: "bg-indigo",
-    },
-    gold: {
-      text: "text-gold",
-      bg: "bg-gold-soft",
-      border: "border-gold/30",
-      bar: "bg-gold",
-    },
-  }[accent];
+import {
+  MODE_UTAMA,
+  MODE_BOB_SABTU,
+  MODE_BOB_MINGGU,
+  modeLabel,
+  modeSingkat,
+} from "../lib/babaks";
 
+const ACCENT = {
+  indigo: {
+    text: "text-indigo",
+    bg: "bg-indigo-soft",
+    border: "border-indigo/30",
+  },
+  gold: {
+    text: "text-gold",
+    bg: "bg-gold-soft",
+    border: "border-gold/30",
+  },
+  cyan: {
+    text: "text-cyan",
+    bg: "bg-cyan-soft",
+    border: "border-cyan/30",
+  },
+};
+
+function ScorePanel({ label, accent, pendaftar, lunas, belum, tunai, bank }) {
+  const a = ACCENT[accent];
   const total = tunai + bank;
   const tunaiPct = total > 0 ? Math.round((tunai / total) * 100) : 0;
 
   return (
     <div
-      className={`rounded-2xl border ${accentMap.border} bg-surface p-6 flex flex-col gap-5`}
+      className={`rounded-2xl border ${a.border} bg-surface p-5 sm:p-6 flex flex-col gap-5`}
     >
-      <div className="flex items-center justify-between">
-        <div>
+      <div className="flex items-center justify-between gap-3">
+        <div className="min-w-0">
           <p className="text-xs uppercase tracking-[0.15em] text-muted mb-1">
             Kategori
           </p>
-          <h3 className={`font-display font-bold text-xl ${accentMap.text}`}>
+          <h3
+            className={`font-display font-bold text-lg sm:text-xl ${a.text} truncate`}
+          >
             {label}
           </h3>
         </div>
         <span
-          className={`px-3 py-1 rounded-full text-xs font-semibold ${accentMap.bg} ${accentMap.text}`}
+          className={`px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap ${a.bg} ${a.text}`}
         >
           {pendaftar} tim
         </span>
@@ -39,7 +53,9 @@ function ScorePanel({ label, accent, pendaftar, lunas, belum, tunai, bank }) {
 
       <div>
         <p className="text-xs text-muted mb-1">Omzet {label}</p>
-        <p className={`scoreboard-num text-3xl font-bold ${accentMap.text}`}>
+        <p
+          className={`scoreboard-num text-2xl sm:text-3xl font-bold ${a.text}`}
+        >
           Rp {total.toLocaleString("id-ID")}
         </p>
       </div>
@@ -59,17 +75,12 @@ function ScorePanel({ label, accent, pendaftar, lunas, belum, tunai, bank }) {
         </div>
       </div>
 
-      <div>
-        <div className="h-1.5 rounded-full bg-surface-2 overflow-hidden flex">
-          <div
-            className="h-full bg-emerald"
-            style={{ width: `${tunaiPct}%` }}
-          />
-          <div
-            className="h-full bg-indigo"
-            style={{ width: `${100 - tunaiPct}%` }}
-          />
-        </div>
+      <div className="h-1.5 rounded-full bg-surface-2 overflow-hidden flex">
+        <div className="h-full bg-emerald" style={{ width: `${tunaiPct}%` }} />
+        <div
+          className="h-full bg-indigo"
+          style={{ width: `${100 - tunaiPct}%` }}
+        />
       </div>
 
       <div className="feather-divider" />
@@ -94,11 +105,13 @@ function StatChip({ label, value, sub, tone = "text" }) {
     gold: "text-gold",
   };
   return (
-    <div className="bg-surface border border-border-soft rounded-2xl p-5">
+    <div className="card p-5">
       <p className="text-xs uppercase tracking-[0.12em] text-muted mb-2">
         {label}
       </p>
-      <p className={`scoreboard-num text-2xl font-bold ${toneMap[tone]}`}>
+      <p
+        className={`scoreboard-num text-xl sm:text-2xl font-bold ${toneMap[tone]}`}
+      >
         {value}
       </p>
       {sub && <p className="text-[11px] text-muted mt-1">{sub}</p>}
@@ -159,7 +172,7 @@ function BackupPanel({ daftar, setDaftar, htm, setHtm }) {
   };
 
   return (
-    <div className="bg-surface border border-border-soft rounded-2xl p-6 mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div className="card p-5 sm:p-6 mb-6 sm:mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
       <div>
         <p className="text-xs uppercase tracking-[0.15em] text-muted mb-1">
           Backup Data
@@ -174,10 +187,10 @@ function BackupPanel({ daftar, setDaftar, htm, setHtm }) {
           onClick={handleExport}
           className="px-4 py-2.5 rounded-lg text-sm font-semibold bg-emerald-soft text-emerald hover:brightness-110 transition-all"
         >
-          ⬇ Export Backup
+          ⬇ Export
         </button>
         <label className="px-4 py-2.5 rounded-lg text-sm font-semibold bg-indigo-soft text-indigo hover:brightness-110 transition-all cursor-pointer">
-          ⬆ Import Backup
+          ⬆ Import
           <input
             type="file"
             accept="application/json"
@@ -194,6 +207,8 @@ export default function Dashboard({ daftar, setDaftar, htm, setHtm }) {
   // Omzet dihitung dari harga yang terkunci saat peserta mendaftar (p.harga),
   // bukan dari htm saat ini. Ini penting karena HTM bersifat fleksibel dan
   // bisa berubah — transaksi lama tidak boleh ikut berubah nilainya.
+  const hargaFallback = (mode) => (mode === MODE_UTAMA ? htm.utama : htm.bob);
+
   const hitung = (mode, metode) =>
     daftar
       .filter(
@@ -201,38 +216,45 @@ export default function Dashboard({ daftar, setDaftar, htm, setHtm }) {
       )
       .reduce(
         (sum, p) =>
-          sum +
-          (typeof p.harga === "number"
-            ? p.harga
-            : mode === "Utama"
-              ? htm.utama
-              : htm.bob),
+          sum + (typeof p.harga === "number" ? p.harga : hargaFallback(mode)),
         0,
       );
 
-  const utamaTunai = hitung("Utama", "Tunai");
-  const utamaBank = hitung("Utama", "Bank Transfer");
-  const bobTunai = hitung("BoB", "Tunai");
-  const bobBank = hitung("BoB", "Bank Transfer");
+  const kategori = [
+    { mode: MODE_UTAMA, label: modeLabel[MODE_UTAMA], accent: "indigo" },
+    { mode: MODE_BOB_SABTU, label: modeLabel[MODE_BOB_SABTU], accent: "gold" },
+    {
+      mode: MODE_BOB_MINGGU,
+      label: modeLabel[MODE_BOB_MINGGU],
+      accent: "cyan",
+    },
+  ].map((kat) => {
+    const tunai = hitung(kat.mode, "Tunai");
+    const bank = hitung(kat.mode, "Bank Transfer");
+    const peserta = daftar.filter((p) => p.modeLomba === kat.mode);
+    const lunas = peserta.filter((p) => p.sudahBayar).length;
+    return {
+      ...kat,
+      tunai,
+      bank,
+      omzet: tunai + bank,
+      pendaftar: peserta.length,
+      lunas,
+      belum: peserta.length - lunas,
+    };
+  });
 
-  const omzetUtama = utamaTunai + utamaBank;
-  const omzetBob = bobTunai + bobBank;
-  const totalTunai = utamaTunai + bobTunai;
-  const totalTransfer = utamaBank + bobBank;
+  const totalTunai = kategori.reduce((s, k) => s + k.tunai, 0);
+  const totalTransfer = kategori.reduce((s, k) => s + k.bank, 0);
   const omzetTotal = totalTunai + totalTransfer;
 
-  const pesertaUtama = daftar.filter((p) => p.modeLomba === "Utama");
-  const pesertaBob = daftar.filter((p) => p.modeLomba === "BoB");
-  const lunasUtama = pesertaUtama.filter((p) => p.sudahBayar).length;
-  const lunasBob = pesertaBob.filter((p) => p.sudahBayar).length;
-
   return (
-    <div className="p-8 min-h-screen bg-ink">
-      <div className="mb-8">
+    <div className="p-4 sm:p-6 lg:p-8 min-h-screen bg-ink">
+      <div className="mb-6 sm:mb-8">
         <p className="text-xs uppercase tracking-[0.2em] text-gold mb-1">
           Papan Skor Keuangan
         </p>
-        <h2 className="font-display font-bold text-3xl text-ink-text">
+        <h2 className="font-display font-bold text-2xl sm:text-3xl text-ink-text">
           Dashboard
         </h2>
       </div>
@@ -245,11 +267,13 @@ export default function Dashboard({ daftar, setDaftar, htm, setHtm }) {
       />
 
       {/* Ringkasan total keseluruhan */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6 sm:mb-8">
         <StatChip
           label="Total Pendaftar"
           value={daftar.length}
-          sub={`${pesertaUtama.length} Utama · ${pesertaBob.length} BoB`}
+          sub={kategori
+            .map((k) => `${k.pendaftar} ${modeSingkat[k.mode]}`)
+            .join(" · ")}
         />
         <StatChip
           label="Total Tunai"
@@ -268,87 +292,75 @@ export default function Dashboard({ daftar, setDaftar, htm, setHtm }) {
         />
       </div>
 
-      {/* Panel terpisah per kategori lomba */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-8">
-        <ScorePanel
-          label="Lomba Utama"
-          accent="indigo"
-          pendaftar={pesertaUtama.length}
-          lunas={lunasUtama}
-          belum={pesertaUtama.length - lunasUtama}
-          tunai={utamaTunai}
-          bank={utamaBank}
-        />
-        <ScorePanel
-          label="Best of Best (BoB)"
-          accent="gold"
-          pendaftar={pesertaBob.length}
-          lunas={lunasBob}
-          belum={pesertaBob.length - lunasBob}
-          tunai={bobTunai}
-          bank={bobBank}
-        />
+      {/* Panel terpisah per kategori lomba — Utama, BoB Sabtu, BoB Minggu */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-5 mb-6 sm:mb-8">
+        {kategori.map((k) => (
+          <ScorePanel
+            key={k.mode}
+            label={k.label}
+            accent={k.accent}
+            pendaftar={k.pendaftar}
+            lunas={k.lunas}
+            belum={k.belum}
+            tunai={k.tunai}
+            bank={k.bank}
+          />
+        ))}
       </div>
 
       {/* Tabel matriks detail */}
       <div className="rounded-2xl border border-border-soft bg-surface overflow-hidden">
-        <div className="px-6 py-4 border-b border-border-soft">
+        <div className="px-5 sm:px-6 py-4 border-b border-border-soft">
           <h3 className="font-display font-semibold text-ink-text">
             Rincian Matriks Kategori × Metode
           </h3>
         </div>
-        <table className="w-full text-center text-sm">
-          <thead>
-            <tr className="text-muted text-xs uppercase tracking-wide">
-              <th className="p-4 text-left">Kategori</th>
-              <th className="p-4 text-emerald">Tunai</th>
-              <th className="p-4 text-indigo">Transfer</th>
-              <th className="p-4 text-gold">Subtotal</th>
-            </tr>
-          </thead>
-          <tbody className="text-ink-text">
-            <tr className="border-t border-border-soft">
-              <td className="p-4 text-left font-medium">Lomba Utama</td>
-              <td className="p-4 scoreboard-num">
-                Rp {utamaTunai.toLocaleString("id-ID")}
-              </td>
-              <td className="p-4 scoreboard-num">
-                Rp {utamaBank.toLocaleString("id-ID")}
-              </td>
-              <td className="p-4 scoreboard-num font-bold text-gold">
-                Rp {omzetUtama.toLocaleString("id-ID")}
-              </td>
-            </tr>
-            <tr className="border-t border-border-soft">
-              <td className="p-4 text-left font-medium">BoB</td>
-              <td className="p-4 scoreboard-num">
-                Rp {bobTunai.toLocaleString("id-ID")}
-              </td>
-              <td className="p-4 scoreboard-num">
-                Rp {bobBank.toLocaleString("id-ID")}
-              </td>
-              <td className="p-4 scoreboard-num font-bold text-gold">
-                Rp {omzetBob.toLocaleString("id-ID")}
-              </td>
-            </tr>
-          </tbody>
-          <tfoot>
-            <tr className="border-t-2 border-gold/40 bg-surface-2">
-              <td className="p-4 text-left font-display font-bold text-gold">
-                GRAND TOTAL
-              </td>
-              <td className="p-4 scoreboard-num font-bold text-emerald">
-                Rp {totalTunai.toLocaleString("id-ID")}
-              </td>
-              <td className="p-4 scoreboard-num font-bold text-indigo">
-                Rp {totalTransfer.toLocaleString("id-ID")}
-              </td>
-              <td className="p-4 scoreboard-num font-bold text-gold">
-                Rp {omzetTotal.toLocaleString("id-ID")}
-              </td>
-            </tr>
-          </tfoot>
-        </table>
+        <div className="table-scroll">
+          <table className="w-full text-center text-sm min-w-[560px]">
+            <thead>
+              <tr className="text-muted text-xs uppercase tracking-wide">
+                <th className="p-4 text-left">Kategori</th>
+                <th className="p-4 text-emerald">Tunai</th>
+                <th className="p-4 text-indigo">Transfer</th>
+                <th className="p-4 text-gold">Subtotal</th>
+              </tr>
+            </thead>
+            <tbody className="text-ink-text">
+              {kategori.map((k) => (
+                <tr key={k.mode} className="border-t border-border-soft">
+                  <td className="p-4 text-left font-medium whitespace-nowrap">
+                    {k.label}
+                  </td>
+                  <td className="p-4 scoreboard-num">
+                    Rp {k.tunai.toLocaleString("id-ID")}
+                  </td>
+                  <td className="p-4 scoreboard-num">
+                    Rp {k.bank.toLocaleString("id-ID")}
+                  </td>
+                  <td className="p-4 scoreboard-num font-bold text-gold">
+                    Rp {k.omzet.toLocaleString("id-ID")}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+            <tfoot>
+              <tr className="border-t-2 border-gold/40 bg-surface-2">
+                <td className="p-4 text-left font-display font-bold text-gold whitespace-nowrap">
+                  GRAND TOTAL
+                </td>
+                <td className="p-4 scoreboard-num font-bold text-emerald">
+                  Rp {totalTunai.toLocaleString("id-ID")}
+                </td>
+                <td className="p-4 scoreboard-num font-bold text-indigo">
+                  Rp {totalTransfer.toLocaleString("id-ID")}
+                </td>
+                <td className="p-4 scoreboard-num font-bold text-gold">
+                  Rp {omzetTotal.toLocaleString("id-ID")}
+                </td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
       </div>
     </div>
   );

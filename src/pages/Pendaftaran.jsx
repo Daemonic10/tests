@@ -1,56 +1,139 @@
 import { useState } from "react";
-import { KLOTER_SIZE } from "../lib/babaks";
+import {
+  KLOTER_SIZE,
+  KUOTA_HARIAN_PER_KATEGORI,
+  MODE_UTAMA,
+  modeSingkat,
+  modeAccent,
+  getKategoriBobHariIni,
+  hitungRegistrasiHariIni,
+} from "../lib/babaks";
+
+const HARI_LABEL = [
+  "Minggu",
+  "Senin",
+  "Selasa",
+  "Rabu",
+  "Kamis",
+  "Jumat",
+  "Sabtu",
+];
+
+function KategoriToggle({
+  pilihan,
+  setPilihan,
+  bobTersedia,
+  kategoriBobAktif,
+}) {
+  const bobLabel = kategoriBobAktif ? modeSingkat[kategoriBobAktif] : "BoB";
+
+  return (
+    <div>
+      <label className="text-xs text-muted mb-1.5 block">Kategori Lomba</label>
+      <div className="grid grid-cols-2 gap-2">
+        <button
+          type="button"
+          onClick={() => setPilihan("utama")}
+          className={`py-3 rounded-lg text-sm font-semibold border transition-colors ${
+            pilihan === "utama"
+              ? "bg-indigo-soft text-indigo border-indigo/40"
+              : "bg-surface-2 text-muted border-border-soft hover:text-ink-text"
+          }`}
+        >
+          Lomba Utama
+        </button>
+        <button
+          type="button"
+          disabled={!bobTersedia}
+          onClick={() => setPilihan("bob")}
+          title={
+            bobTersedia
+              ? `Kategori aktif hari ini: ${bobLabel}`
+              : "BoB hanya dibuka pada hari Sabtu & Minggu"
+          }
+          className={`py-3 rounded-lg text-sm font-semibold border transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
+            pilihan === "bob"
+              ? "bg-gold-soft text-gold border-gold/40"
+              : "bg-surface-2 text-muted border-border-soft hover:text-ink-text"
+          }`}
+        >
+          {bobTersedia ? bobLabel : "BoB (tutup hari ini)"}
+        </button>
+      </div>
+      {!bobTersedia && (
+        <p className="text-xs text-muted mt-1.5">
+          Best of Best otomatis terbagi 2: <b>BoB Sabtu</b> &amp;{" "}
+          <b>BoB Minggu</b> — kategori aktif menyesuaikan hari pendaftaran
+          sebenarnya, dan hari ini bukan akhir pekan.
+        </p>
+      )}
+    </div>
+  );
+}
 
 export default function Pendaftaran({ daftar, setDaftar, htm, setHtm }) {
-  const [f, setF] = useState({
-    namaTim: "",
-    namaBurung: "",
-    modeLomba: "Utama",
-  });
+  const [pilihanKategori, setPilihanKategori] = useState("utama"); // "utama" | "bob"
+  const [f, setF] = useState({ namaTim: "", namaBurung: "" });
 
   // Input harga HTM sementara (sebelum disimpan ke state global via tombol "Terapkan")
   const [hargaUtama, setHargaUtama] = useState(htm.utama);
   const [hargaBob, setHargaBob] = useState(htm.bob);
 
-  const hariIni = new Date().toISOString().slice(0, 10);
+  const now = new Date();
+  const hariIni = now.toISOString().slice(0, 10);
+  const namaHariIni = HARI_LABEL[now.getDay()];
 
-  // Kuota 3x/hari berlaku PER BURUNG (dalam satu tim), bukan per tim.
-  // Jadi 1 tim boleh mendaftarkan banyak burung berbeda, tapi burung yang
-  // sama hanya boleh daftar ulang maksimal 3x pada tanggal yang sama.
-  const jumlahHariIni =
-    f.namaTim && f.namaBurung
-      ? daftar.filter(
-          (p) =>
-            p.namaTim === f.namaTim &&
-            p.namaBurung === f.namaBurung &&
-            p.tanggal === hariIni,
-        ).length
-      : 0;
-  const sisaKuota = 3 - jumlahHariIni;
+  // Kategori BoB aktif hari ini ditentukan otomatis dari tanggal sebenarnya.
+  const kategoriBobAktif = getKategoriBobHariIni(hariIni);
+  const bobTersedia = kategoriBobAktif !== null;
+
+  // Kategori final yang benar-benar tersimpan ke data (bukan sekadar pilihan UI).
+  const modeLomba =
+    pilihanKategori === "bob" && bobTersedia ? kategoriBobAktif : MODE_UTAMA;
+
+  // Kuota 3x/hari berlaku PER BURUNG, PER KATEGORI — bukan per tim, dan tidak
+  // tercampur antar kategori. Artinya pendaftaran burung yang sama di
+  // kategori Utama TIDAK ikut dihitung ke akumulasi kuota BoB, begitu pula
+  // sebaliknya. Satu tim boleh mendaftarkan banyak burung berbeda.
+  const jumlahHariIni = hitungRegistrasiHariIni(daftar, {
+    namaTim: f.namaTim,
+    namaBurung: f.namaBurung,
+    modeLomba,
+    tanggal: hariIni,
+  });
+  const sisaKuota = KUOTA_HARIAN_PER_KATEGORI - jumlahHariIni;
   const registrasiKeBerapa = jumlahHariIni + 1;
-  const akanOtomatisLolos = registrasiKeBerapa >= 3;
-  const hargaAktif = f.modeLomba === "Utama" ? htm.utama : htm.bob;
+  const akanOtomatisLolos = registrasiKeBerapa >= KUOTA_HARIAN_PER_KATEGORI;
+  const hargaAktif = modeLomba === MODE_UTAMA ? htm.utama : htm.bob;
 
   // Kloter berjalan otomatis: setiap KLOTER_SIZE pendaftaran (per kategori,
   // per hari) akan masuk ke kloter berikutnya, supaya rapi saat dipasangkan
-  // di halaman Pengocokan.
+  // di halaman Pengocokan. Karena kategori BoB kini terbagi 2, kloter Sabtu
+  // & Minggu juga otomatis terpisah.
   const kloterBerikutnya =
     Math.floor(
-      daftar.filter((p) => p.modeLomba === f.modeLomba && p.tanggal === hariIni)
+      daftar.filter((p) => p.modeLomba === modeLomba && p.tanggal === hariIni)
         .length / KLOTER_SIZE,
     ) + 1;
+
+  const resetForm = () => {
+    setF({ namaTim: "", namaBurung: "" });
+    setPilihanKategori("utama");
+  };
 
   const handleDaftar = () => {
     if (!f.namaTim || !f.namaBurung) return alert("Isi Data!");
 
-    if (jumlahHariIni >= 3) {
+    if (jumlahHariIni >= KUOTA_HARIAN_PER_KATEGORI) {
       return alert(
-        `Burung "${f.namaBurung}" (Tim ${f.namaTim}) sudah mendaftar 3 kali hari ini. Batas maksimal tercapai.`,
+        `Burung "${f.namaBurung}" (Tim ${f.namaTim}) sudah mendaftar ${KUOTA_HARIAN_PER_KATEGORI}x hari ini di kategori ${modeSingkat[modeLomba]}. Batas maksimal tercapai.`,
       );
     }
 
     const recordBaru = {
-      ...f,
+      namaTim: f.namaTim,
+      namaBurung: f.namaBurung,
+      modeLomba,
       tanggal: hariIni,
       sudahBayar: false,
       metode: "Tunai",
@@ -66,7 +149,7 @@ export default function Pendaftaran({ daftar, setDaftar, htm, setHtm }) {
       const updated = [...prev, recordBaru];
       if (!akanOtomatisLolos) return updated;
 
-      // Daftar ulang ke-3 pada burung yang sama -> otomatis lolos ke babak
+      // Daftar ulang ke-3 (di kategori yang sama) -> otomatis lolos ke babak
       // berikutnya. Update diterapkan ke SEMUA baris burung ini (bukan cuma
       // baris terbaru) supaya statusnya konsisten di semua tampilan.
       return updated.map((x) =>
@@ -78,11 +161,11 @@ export default function Pendaftaran({ daftar, setDaftar, htm, setHtm }) {
 
     if (akanOtomatisLolos) {
       alert(
-        `🎉 "${f.namaBurung}" (Tim ${f.namaTim}) sudah 3x daftar ulang dan OTOMATIS LOLOS ke babak Perempat Final!`,
+        `🎉 "${f.namaBurung}" (Tim ${f.namaTim}) sudah ${KUOTA_HARIAN_PER_KATEGORI}x daftar ulang di kategori ${modeSingkat[modeLomba]} dan OTOMATIS LOLOS ke babak Perempat Final!`,
       );
     }
 
-    setF({ namaTim: "", namaBurung: "", modeLomba: "Utama" });
+    resetForm();
   };
 
   const terapkanHarga = () => {
@@ -95,21 +178,24 @@ export default function Pendaftaran({ daftar, setDaftar, htm, setHtm }) {
     alert("Harga HTM berhasil diterapkan.");
   };
 
+  const accent = modeAccent[modeLomba];
+  const tombolDisabled = f.namaTim && f.namaBurung && sisaKuota <= 0;
+
   return (
-    <div className="p-8 min-h-screen bg-ink">
-      <div className="mb-8">
+    <div className="p-4 sm:p-6 lg:p-8 min-h-screen bg-ink">
+      <div className="mb-6 sm:mb-8">
         <p className="text-xs uppercase tracking-[0.2em] text-gold mb-1">
-          Meja Pendaftaran
+          Meja Pendaftaran · {namaHariIni}
         </p>
-        <h2 className="font-display font-bold text-3xl text-ink-text">
+        <h2 className="font-display font-bold text-2xl sm:text-3xl text-ink-text">
           Pendaftaran Peserta
         </h2>
       </div>
 
       {/* Panel pengaturan HTM — diisi lebih dulu karena harga bersifat fleksibel */}
-      <div className="max-w-3xl mb-6 bg-surface border border-gold/30 rounded-2xl p-6">
+      <div className="max-w-3xl mb-6 card p-5 sm:p-6 border-gold/30">
         <p className="text-xs uppercase tracking-[0.15em] text-gold mb-4">
-          1. Atur Harga HTM (fleksibel, tentukan dulu sebelum daftar)
+          1. Atur Harga HTM
         </p>
         <div className="grid grid-cols-1 md:grid-cols-[1fr_1fr_auto] gap-3 items-end">
           <div>
@@ -126,7 +212,7 @@ export default function Pendaftaran({ daftar, setDaftar, htm, setHtm }) {
           </div>
           <div>
             <label className="text-xs text-muted mb-1.5 block">
-              HTM Best of Best / BoB (Rp)
+              HTM Best of Best — Sabtu &amp; Minggu (Rp)
             </label>
             <input
               type="number"
@@ -145,7 +231,7 @@ export default function Pendaftaran({ daftar, setDaftar, htm, setHtm }) {
         </div>
         <p className="text-xs text-muted mt-3">
           Harga saat ini tersimpan — Utama: Rp{" "}
-          {htm.utama.toLocaleString("id-ID")} · BoB: Rp{" "}
+          {htm.utama.toLocaleString("id-ID")} · BoB (Sabtu &amp; Minggu): Rp{" "}
           {htm.bob.toLocaleString("id-ID")}. Perubahan harga hanya berlaku untuk
           pendaftaran baru, transaksi lama tidak ikut berubah.
         </p>
@@ -154,8 +240,8 @@ export default function Pendaftaran({ daftar, setDaftar, htm, setHtm }) {
       <p className="text-xs uppercase tracking-[0.15em] text-gold mb-3 max-w-3xl">
         2. Data Pendaftaran
       </p>
-      <div className="grid grid-cols-1 md:grid-cols-[1.3fr_1fr] gap-6 max-w-3xl">
-        <div className="bg-surface border border-border-soft rounded-2xl p-6 space-y-4">
+      <div className="grid grid-cols-1 lg:grid-cols-[1.3fr_1fr] gap-5 sm:gap-6 max-w-3xl">
+        <div className="card p-5 sm:p-6 space-y-4">
           <div>
             <label className="text-xs text-muted mb-1.5 block">Nama Tim</label>
             <input
@@ -176,41 +262,38 @@ export default function Pendaftaran({ daftar, setDaftar, htm, setHtm }) {
               onChange={(e) => setF({ ...f, namaBurung: e.target.value })}
             />
           </div>
-          <div>
-            <label className="text-xs text-muted mb-1.5 block">
-              Kategori Lomba
-            </label>
-            <select
-              className="bg-surface-2 border border-border-soft focus:border-gold outline-none p-3 w-full rounded-lg text-ink-text transition-colors"
-              value={f.modeLomba}
-              onChange={(e) => setF({ ...f, modeLomba: e.target.value })}
-            >
-              <option value="Utama">Lomba Utama</option>
-              <option value="BoB">Best of Best (BoB)</option>
-            </select>
-            <p className="text-xs text-muted mt-1.5">
-              Harga untuk kategori ini:{" "}
-              <span className="text-gold font-semibold">
-                Rp {hargaAktif.toLocaleString("id-ID")}
-              </span>{" "}
-              · Akan masuk{" "}
-              <span className="text-gold font-semibold">
-                Kloter {kloterBerikutnya}
-              </span>
-            </p>
-          </div>
+
+          <KategoriToggle
+            pilihan={pilihanKategori}
+            setPilihan={setPilihanKategori}
+            bobTersedia={bobTersedia}
+            kategoriBobAktif={kategoriBobAktif}
+          />
+
+          <p className="text-xs text-muted -mt-1">
+            Harga untuk kategori ini:{" "}
+            <span className={`font-semibold ${accent.text}`}>
+              Rp {hargaAktif.toLocaleString("id-ID")}
+            </span>{" "}
+            · Akan masuk{" "}
+            <span className={`font-semibold ${accent.text}`}>
+              Kloter {kloterBerikutnya}
+            </span>
+          </p>
+
           <button
             onClick={handleDaftar}
-            disabled={!!f.namaTim && !!f.namaBurung && sisaKuota <= 0}
+            disabled={tombolDisabled}
             className="w-full py-3 rounded-lg font-display font-bold bg-gold text-ink hover:brightness-110 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
           >
             Simpan Pendaftaran
           </button>
         </div>
 
-        <div className="bg-surface border border-border-soft rounded-2xl p-6 flex flex-col gap-4">
+        <div className="card p-5 sm:p-6 flex flex-col gap-4">
           <p className="text-xs uppercase tracking-[0.15em] text-muted">
-            Kuota Harian per Burung
+            Kuota Harian per Burung ·{" "}
+            <span className={accent.text}>{modeSingkat[modeLomba]}</span>
           </p>
           {f.namaTim && f.namaBurung ? (
             <>
@@ -219,40 +302,50 @@ export default function Pendaftaran({ daftar, setDaftar, htm, setHtm }) {
                   {f.namaBurung}
                 </p>
                 <p className="text-xs text-muted -mt-1 mb-1">Tim {f.namaTim}</p>
-                <p className="scoreboard-num text-4xl font-bold text-gold">
+                <p
+                  className={`scoreboard-num text-4xl font-bold ${accent.text}`}
+                >
                   {Math.max(sisaKuota, 0)}
-                  <span className="text-lg text-muted"> / 3</span>
+                  <span className="text-lg text-muted">
+                    {" "}
+                    / {KUOTA_HARIAN_PER_KATEGORI}
+                  </span>
                 </p>
                 <p className="text-xs text-muted mt-1">sisa slot hari ini</p>
               </div>
               <div className="h-1.5 rounded-full bg-surface-2 overflow-hidden">
                 <div
                   className={`h-full ${sisaKuota <= 0 ? "bg-rose" : "bg-gold"}`}
-                  style={{ width: `${(jumlahHariIni / 3) * 100}%` }}
+                  style={{
+                    width: `${(jumlahHariIni / KUOTA_HARIAN_PER_KATEGORI) * 100}%`,
+                  }}
                 />
               </div>
               {sisaKuota <= 0 ? (
                 <p className="text-xs text-rose">
-                  Kuota harian burung ini sudah habis.
+                  Kuota harian burung ini di kategori {modeSingkat[modeLomba]}{" "}
+                  sudah habis.
                 </p>
               ) : akanOtomatisLolos ? (
                 <p className="text-xs text-gold font-semibold">
-                  ✨ Ini pendaftaran ke-3 — burung akan OTOMATIS LOLOS ke
+                  ✨ Ini pendaftaran ke-{KUOTA_HARIAN_PER_KATEGORI} di kategori{" "}
+                  {modeSingkat[modeLomba]} — burung akan OTOMATIS LOLOS ke
                   Perempat Final setelah disimpan.
                 </p>
               ) : (
                 <p className="text-xs text-muted">
-                  3x daftar ulang pada burung yang sama akan membuatnya otomatis
-                  lolos ke babak berikutnya.
+                  {KUOTA_HARIAN_PER_KATEGORI}x daftar ulang pada burung yang
+                  sama, DI KATEGORI YANG SAMA, akan membuatnya otomatis lolos ke
+                  babak berikutnya. Hitungan Utama &amp; BoB tidak tercampur.
                 </p>
               )}
             </>
           ) : (
             <p className="text-sm text-muted">
               Isi nama tim &amp; nama burung untuk melihat sisa kuota
-              pendaftaran hari ini (maks. 3x/hari per burung). Satu tim boleh
-              mendaftarkan banyak burung berbeda. 3x daftar ulang pada burung
-              yang sama = otomatis lolos ke babak berikutnya.
+              pendaftaran hari ini (maks. {KUOTA_HARIAN_PER_KATEGORI}x/hari per
+              burung, per kategori). Satu tim boleh mendaftarkan banyak burung
+              berbeda.
             </p>
           )}
         </div>

@@ -12,6 +12,8 @@
   --color-emerald-soft: #113026;
   --color-indigo: #7c8cf8;
   --color-indigo-soft: #1c1f3d;
+  --color-cyan: #45c6e0;
+  --color-cyan-soft: #123540;
   --color-rose: #f0576b;
   --color-rose-soft: #3a1520;
   --color-ink-text: #f3f1ea;
@@ -36,6 +38,21 @@ body {
   color: var(--color-ink);
 }
 
+/* Scrollbar tipis & senada tema gelap — dipakai di tabel yang di-scroll
+   horizontal pada layar sempit. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-border-soft) transparent;
+}
+*::-webkit-scrollbar {
+  height: 6px;
+  width: 6px;
+}
+*::-webkit-scrollbar-thumb {
+  background-color: var(--color-border-soft);
+  border-radius: 999px;
+}
+
 .scoreboard-num {
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
@@ -51,4 +68,28 @@ body {
     transparent 12px
   );
   height: 1px;
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+/* Kartu dasar dipakai berulang di semua halaman — satu sumber kebenaran
+   untuk radius/border/bg supaya konsisten. */
+.card {
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border-soft);
+  border-radius: 1rem;
+}
+
+/* Tabel di layar kecil di-scroll horizontal dalam wrapper ini, bukan
+   di-crush jadi tidak terbaca. */
+.table-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
